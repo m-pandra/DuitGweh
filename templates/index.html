@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DuitGweh</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main>
+  <header>
+    <h1>DuitGweh</h1>
+    <form method="get" class="periode" id="form-periode">
+      <button type="button" class="geser" data-arah="-1" aria-label="Bulan sebelumnya">‹</button>
+      <input type="month" id="bulan" name="bulan" value="{{ bulan }}" aria-label="Periode" onchange="this.form.submit()">
+      <button type="button" class="geser" data-arah="1" aria-label="Bulan berikutnya">›</button>
+    </form>
+  </header>
+
+  <!-- {% for m in get_flashed_messages() %}<div class="pesan" role="alert">{{ m }}</div>{% endfor %} -->
+  {% set daftar_pesan = get_flashed_messages() %}
+  {% if daftar_pesan %}
+  <dialog class="popup" id="popup" aria-labelledby="popup-judul">
+    <div class="popup-ikon" aria-hidden="true">!</div>
+    <h2 id="popup-judul">Perhatian</h2>
+    {% for m in daftar_pesan %}<p>{{ m }}</p>{% endfor %}
+    <button type="button" class="simpan" id="popup-tutup">Mengerti</button>
+  </dialog>
+  {% endif %}
+
+  <div class="saldo" aria-label="Saldo akhir">
+    <div>
+      <small>Saldo akhir</small>
+      <strong id="saldo-nilai" data-nilai="{{ saldo_akhir | rupiah }}">Rp ••••••</strong>
+    </div>
+    <button type="button" id="saldo-mata" class="mata" aria-pressed="false" aria-label="Tampilkan saldo" title="Tampilkan saldo">
+      <svg class="ikon-lihat" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>
+      </svg>
+      <svg class="ikon-sembunyi" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="alur" aria-label="Uang masuk dan keluar">
+    <div><small>Uang masuk</small><strong class="masuk">+ {{ masuk | rupiah }}</strong></div>
+    <div><small>Uang keluar</small><strong class="keluar">− {{ keluar | rupiah }}</strong></div>
+  </div>
+  <nav class="menu" aria-label="Menu pintas">
+    <a href="/laporan">
+      <span class="ikon-menu" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </span>
+      Laporan
+    </a>
+    <a href="/tabungan">
+      <span class="ikon-menu" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      </span>
+      Tabungan
+    </a>
+    <a href="/anggaran">
+      <span class="ikon-menu" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+      </span>
+      Anggaran
+    </a>
+    <a href="/setting">
+      <span class="ikon-menu" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+      </span>
+      pengaturan
+    </a>
+  </nav>
+  
+  <div class="grid">
+    <section class="lipat">
+      <h2>
+        <button type="button" class="lipat-tombol" aria-expanded="false" aria-controls="catat-isi">
+          Catat transaksi <span class="panah" aria-hidden="true">▾</span>
+        </button>
+      </h2>
+      <div class="lipat-isi" id="catat-isi">
+        <div class="lipat-dalam">
+          <form class="tambah" method="post" action="{{ url_for('tambah') }}">
+            <div class="penuh tipe">
+              <label><input type="radio" name="tipe" value="masuk" checked><span>Uang masuk</span></label>
+              <label><input type="radio" name="tipe" value="keluar"><span>Uang keluar</span></label>
+            </div>
+            <div><label for="tanggal">Tanggal</label><input type="date" id="tanggal" name="tanggal" value="{{ hari_ini }}" required></div>
+            <div><label for="jumlah">Jumlah (Rp)</label><input id="jumlah" name="jumlah" inputmode="numeric" placeholder="150000" required></div>
+            <div class="penuh"><label for="kategori">Kategori</label>
+              <input id="kategori" name="kategori" list="kat" placeholder="Gaji, Makan, Transport…" required>
+              <datalist id="kat">{% for k in daftar_kategori %}<option value="{{ k }}">{% endfor %}</datalist></div>
+            <div class="penuh"><label for="ket">Keterangan</label><input id="ket" name="keterangan"></div>
+            <button class="simpan penuh" type="submit">Simpan transaksi</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- <section>
+      <h2>Uang keluar per kategori</h2>
+      {% for k in kategori %}
+        <div class="bar"><span><b>{{ k.kategori }}</b><span>{{ k.total | rupiah }}</span></span>
+          <div style="width: {{ (k.total / maks_kategori * 100) | round(1) }}%"></div></div>
+      {% else %}<p class="kosong">Belum ada pengeluaran di bulan ini.</p>{% endfor %}
+    </section> -->
+  </div>
+  <section class="lipat">
+    <h2>
+      <button type="button" class="lipat-tombol" aria-expanded="false" aria-controls="riwayat-isi">
+        Riwayat transaksi <span class="panah" aria-hidden="true">▾</span>
+      </button>
+    </h2>
+    <div class="lipat-isi" id="riwayat-isi">
+      <div class="lipat-dalam">
+        {% if transaksi %}
+        {% for tgl, items in transaksi | groupby('tanggal') | reverse %}
+        <div class="hari">
+          <h3>{{ tgl }}</h3>
+          <ul class="riwayat">
+            {% for t in items %}
+            <li>
+              <span class="ikon {{ t.tipe }}" aria-hidden="true">{{ '+' if t.tipe == 'masuk' else '-' }}</span>
+              <div class="isi">
+                <p><strong class="{{ t.tipe }}">{{ '+' if t.tipe == 'masuk' else '−' }} {{ t.jumlah | rupiah }}</strong> untuk <b>{{ t.kategori }}</b></p>
+                {% if t.keterangan %}<small>{{ t.keterangan }}</small>{% endif %}
+              </div>
+              <div class="nilai"><small>Saldo {{ t.saldo | rupiah }}</small></div>
+              <form method="post" action="{{ url_for('hapus', id=t.id) }}" onsubmit="return confirm('Hapus transaksi ini?')">
+              <!-- <form method="post" action="{{ url_for('hapus', id=t.id) }}" data-judul="Hapus transaksi?" data-konfirmasi="{{ t.kategori }} sebesar {{ t.jumlah | rupiah }} akan dihapus dan saldo dihitung ulang."></form> -->
+                <button aria-label="Hapus transaksi" title="Hapus">✕</button>
+              </form>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+        {% else %}<p class="kosong">Belum ada transaksi di periode ini. Catat yang pertama lewat formulir di atas.</p>{% endif %}
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  document.querySelectorAll('.lipat-tombol').forEach(tombol => {
+    const isi = document.getElementById(tombol.getAttribute('aria-controls'));
+    tombol.addEventListener('click', () => {
+      const buka = tombol.getAttribute('aria-expanded') !== 'true';
+      tombol.setAttribute('aria-expanded', buka);
+      isi.classList.toggle('buka', buka);
+    });
+  });
+</script>
+<script>
+  (() => {
+    const nilai = document.getElementById('saldo-nilai');
+    const mata = document.getElementById('saldo-mata');
+    const atur = (lihat) => {
+      nilai.textContent = lihat ? nilai.dataset.nilai : 'Rp ••••••';
+      mata.setAttribute('aria-pressed', lihat);
+      const teks = lihat ? 'Sembunyikan saldo' : 'Tampilkan saldo';
+      mata.setAttribute('aria-label', teks);
+      mata.title = teks;
+      try { sessionStorage.setItem('saldoTerlihat', lihat ? '1' : '0'); } catch (e) {}
+    };
+    let awal = false;
+    try { awal = sessionStorage.getItem('saldoTerlihat') === '1'; } catch (e) {}
+    atur(awal);
+    mata.addEventListener('click', () => atur(mata.getAttribute('aria-pressed') !== 'true'));
+  })();
+</script>
+<script>
+  (() => {
+    const form = document.getElementById('form-periode');
+    const input = document.getElementById('bulan');
+    form.querySelectorAll('.geser').forEach(b => b.addEventListener('click', () => {
+      const [y, m] = input.value.split('-').map(Number);
+      const d = new Date(y, m - 1 + Number(b.dataset.arah), 1);
+      input.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      form.submit();
+    }));
+    input.addEventListener('click', () => { try { input.showPicker(); } catch (e) {} });
+  })();
+</script>
+
+<script>
+  const popup = document.getElementById('popup');
+  if (popup) {
+    popup.showModal();
+    document.getElementById('popup-tutup').addEventListener('click', () => popup.close());
+  }
+</script>
+
+<script>
+  (() => {
+    const dlg = document.getElementById('konfirmasi');
+    const judul = document.getElementById('konfirmasi-judul');
+    const teks = document.getElementById('konfirmasi-teks');
+    const batal = document.getElementById('konfirmasi-batal');
+    let form = null;
+
+    document.querySelectorAll('form[data-konfirmasi]').forEach(f => {
+      f.addEventListener('submit', e => {
+        e.preventDefault();
+        form = f;
+        judul.textContent = f.dataset.judul || 'Hapus data?';
+        teks.textContent = f.dataset.konfirmasi;
+        dlg.showModal();
+        batal.focus();
+      });
+    });
+    batal.addEventListener('click', () => dlg.close());
+    document.getElementById('konfirmasi-ya').addEventListener('click', () => {
+      dlg.close();
+      if (form) form.submit();
+    });
+    dlg.addEventListener('click', e => {
+      const r = dlg.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
+    });
+  })();
+</script>
+
+<dialog class="popup" id="konfirmasi" aria-labelledby="konfirmasi-judul">
+  <div class="popup-ikon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+  </div>
+  <h2 id="konfirmasi-judul">Hapus data?</h2>
+  <p id="konfirmasi-teks"></p>
+  <div class="popup-aksi">
+    <button type="button" class="batal" id="konfirmasi-batal">Batal</button>
+    <button type="button" class="bahaya" id="konfirmasi-ya">Hapus</button>
+  </div>
+</dialog>
+
+</body>
+</html>

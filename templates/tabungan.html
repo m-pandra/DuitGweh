@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tabungan · DuitGweh</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='tabungan.css') }}">
+</head>
+<body>
+<main>
+  <!-- <a class="kembali" href="{{ url_for('index') }}">‹ Kembali</a> -->
+  <h1> <a class="kembali" href="{{ url_for('index') }}">‹</a> Tabungan</h1>
+  <div class="kepala">
+    <h2>{{ 'Riwayat tercapai' if lihat else 'Tabungan' }}</h2>
+    <a class="ganti" href="{{ url_for('tabungan') if lihat else url_for('tabungan', lihat='tercapai') }}">
+      {% if lihat %}‹ Tabungan aktif{% else %}
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Riwayat tercapai ({{ jumlah_tercapai }}){% endif %}
+    </a>
+  </div>
+  <!-- {% for m in get_flashed_messages() %}<div class="pesan" role="alert">{{ m }}</div>{% endfor %} -->
+  {% set daftar_pesan = get_flashed_messages() %}
+  {% if daftar_pesan %}
+  <dialog class="popup" id="popup" aria-labelledby="popup-judul">
+    <div class="popup-ikon" aria-hidden="true">!</div>
+    <h2 id="popup-judul">Perhatian</h2>
+    {% for m in daftar_pesan %}<p>{{ m }}</p>{% endfor %}
+    <button type="button" class="simpan" id="popup-tutup">Mengerti</button>
+  </dialog>
+  {% endif %}
+
+  {% if not lihat %}
+  <div class="total">
+    <small>Total terkumpul di tabungan aktif</small>
+    <strong>{{ total | rupiah }}</strong>
+  </div>
+
+  <section class="lipat">
+    <button type="button" class="lipat-tombol" aria-expanded="false" aria-controls="baru-isi">
+      Buat tabungan baru <span class="panah" aria-hidden="true">▾</span>
+    </button>
+    <div class="lipat-isi" id="baru-isi"><div class="lipat-dalam">
+      <form class="form" method="post" action="{{ url_for('tabungan_baru') }}">
+        <div class="penuh"><label for="nama">Nama tujuan</label><input id="nama" name="nama" placeholder="Liburan, Laptop, Dana darurat…" required></div>
+        <div><label for="target">Target (Rp)</label><input id="target" name="target" inputmode="numeric" placeholder="5000000" required></div>
+        <div><label for="tenggat">Tenggat (opsional)</label><input type="date" id="tenggat" name="tenggat"></div>
+        <button class="simpan penuh" type="submit">Buat tabungan</button>
+      </form>
+    </div></div>
+    {% endif %}
+  </section>
+
+  {% if daftar %}
+  <div class="kartu-grid">
+    {% for t in daftar %}
+    <article class="tab {{ 'selesai' if t.persen >= 100 }}">
+      <div class="tab-atas">
+        <h2>{{ t.nama }}</h2>
+        {% if t.persen >= 100 %}<span class="lencana">Tercapai ✓</span>{% endif %}
+      </div>
+      <p class="angka"><strong>{{ t.terkumpul | rupiah }}</strong> <span>dari {{ t.target | rupiah }}</span></p>
+      <div class="progres" role="progressbar" aria-label="Progres {{ t.nama }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ t.persen }}"><i style="width: {{ t.persen }}%"></i></div>
+      <p class="info"><span>{{ t.persen }}%</span><span>{% if t.sisa %}Kurang {{ t.sisa | rupiah }}{% else %}Target terpenuhi{% endif %}</span></p>
+      {% if t.tenggat %}
+      <p class="info"><span>Tenggat {{ t.tenggat }}{% if t.lewat %} · terlewat{% endif %}</span>{% if t.saran %}<span>± {{ t.saran | rupiah }}/bulan</span>{% endif %}</p>
+      {% endif %}
+
+      <div class="aksi">
+        {% if not lihat %}<button type="button" class="lipat-tombol chip" aria-expanded="false" aria-controls="setor-{{ t.id }}">+ Setor</button>{% endif %}
+        <button type="button" class="lipat-tombol chip" aria-expanded="false" aria-controls="riwayat-{{ t.id }}">Riwayat ({{ t.setoran | length }})</button>
+      </div>
+
+      <div class="lipat-isi" id="setor-{{ t.id }}"><div class="lipat-dalam">
+        <form class="form" method="post" action="{{ url_for('tabungan_setor', id=t.id) }}">
+          <div><label for="j{{ t.id }}">Jumlah (Rp)</label><input id="j{{ t.id }}" name="jumlah" inputmode="numeric" placeholder="100000" required></div>
+          <div><label for="d{{ t.id }}">Tanggal</label><input type="date" id="d{{ t.id }}" name="tanggal" value="{{ hari_ini }}" required></div>
+          <div class="penuh"><label for="c{{ t.id }}">Catatan</label><input id="c{{ t.id }}" name="catatan"></div>
+          <button class="simpan penuh" type="submit">Simpan setoran</button>
+        </form>
+      </div></div>
+
+      <div class="lipat-isi" id="riwayat-{{ t.id }}"><div class="lipat-dalam">
+        {% if t.setoran %}
+        <ul class="riwayat">
+          {% for s in t.setoran %}
+          <li>
+            <div class="isi"><span>{{ s.tanggal }}</span>{% if s.catatan %}<small>{{ s.catatan }}</small>{% endif %}</div>
+            <b>+ {{ s.jumlah | rupiah }}</b>
+            <form method="post" action="{{ url_for('setoran_hapus', id=s.id) }}" onsubmit="return confirm('Hapus setoran ini?')">
+            <!-- <form method="post" action="{{ url_for('setoran_hapus', id=s.id) }}" data-judul="Hapus setoran?" data-konfirmasi="Setoran {{ s.jumlah | rupiah }} akan dihapus dari tabungan ini."></form> -->
+              <button class="x" aria-label="Hapus setoran" title="Hapus">✕</button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}<p class="kosong" style="padding-top: 12px">Belum ada setoran.</p>{% endif %}
+      </div></div>
+
+      <form class="hapus" method="post" action="{{ url_for('tabungan_hapus', id=t.id) }}" onsubmit="return confirm('Hapus tabungan {{ t.nama | e }} beserta seluruh setorannya?')">
+      <!-- <form class="hapus" method="post" action="{{ url_for('tabungan_hapus', id=t.id) }}" data-judul="Hapus tabungan?" data-konfirmasi="Tabungan {{ t.nama }} beserta seluruh setorannya akan dihapus."></form> -->
+        <button>Hapus tabungan</button>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <section><p class="kosong">Belum ada tabungan. Buat tujuan pertama Anda lewat tombol di atas.</p></section>
+  {% endif %}
+</main>
+
+<script>
+  document.querySelectorAll('.lipat-tombol').forEach(tombol => {
+    const isi = document.getElementById(tombol.getAttribute('aria-controls'));
+    tombol.addEventListener('click', () => {
+      const buka = tombol.getAttribute('aria-expanded') !== 'true';
+      tombol.setAttribute('aria-expanded', buka);
+      isi.classList.toggle('buka', buka);
+    });
+  });
+</script>
+<script>
+  const popup = document.getElementById('popup');
+  if (popup) {
+    popup.showModal();
+    document.getElementById('popup-tutup').addEventListener('click', () => popup.close());
+  }
+</script>
+
+<script>
+  (() => {
+    const dlg = document.getElementById('konfirmasi');
+    const judul = document.getElementById('konfirmasi-judul');
+    const teks = document.getElementById('konfirmasi-teks');
+    const batal = document.getElementById('konfirmasi-batal');
+    let form = null;
+
+    document.querySelectorAll('form[data-konfirmasi]').forEach(f => {
+      f.addEventListener('submit', e => {
+        e.preventDefault();
+        form = f;
+        judul.textContent = f.dataset.judul || 'Hapus data?';
+        teks.textContent = f.dataset.konfirmasi;
+        dlg.showModal();
+        batal.focus();
+      });
+    });
+    batal.addEventListener('click', () => dlg.close());
+    document.getElementById('konfirmasi-ya').addEventListener('click', () => {
+      dlg.close();
+      if (form) form.submit();
+    });
+    dlg.addEventListener('click', e => {
+      const r = dlg.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
+    });
+  })();
+</script>
+
+<dialog class="popup" id="konfirmasi" aria-labelledby="konfirmasi-judul">
+  <div class="popup-ikon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+  </div>
+  <h2 id="konfirmasi-judul">Hapus data?</h2>
+  <p id="konfirmasi-teks"></p>
+  <div class="popup-aksi">
+    <button type="button" class="batal" id="konfirmasi-batal">Batal</button>
+    <button type="button" class="bahaya" id="konfirmasi-ya">Hapus</button>
+  </div>
+</dialog>
+
+</body>
+</html>

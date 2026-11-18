@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DuitGweh</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main>
+  <div class="kepala">
+    <h1><a class="kembali" href="{{ url_for('index') }}" aria-label="Kembali ke beranda">‹</a> Setting</h1>
+  </div>
+
+  <!-- {% for m in get_flashed_messages() %}<div class="pesan" role="alert">{{ m }}</div>{% endfor %} -->
+  <!-- {% set daftar_pesan = get_flashed_messages() %}
+  {% if daftar_pesan %}
+  <dialog class="popup" id="popup" aria-labelledby="popup-judul">
+    <div class="popup-ikon" aria-hidden="true">!</div>
+    <h2 id="popup-judul">Perhatian</h2>
+    {% for m in daftar_pesan %}<p>{{ m }}</p>{% endfor %}
+    <button type="button" class="simpan" id="popup-tutup">Mengerti</button>
+  </dialog>
+  {% endif %} -->
+
+  <div class="saldo" aria-label="Saldo akhir">
+    <div>
+      <small></small>
+      <strong id="saldo-nilai" data-nilai="">COMING SOON</strong>
+    </div>
+    <!-- <button type="button" id="saldo-mata" class="mata" aria-pressed="false" aria-label="Tampilkan saldo" title="Tampilkan saldo">
+      <svg class="ikon-lihat" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>
+      </svg>
+      <svg class="ikon-sembunyi" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>
+      </svg>
+    </button> -->
+  </div>
+
+</body>
+</html>

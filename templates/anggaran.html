@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anggaran · DuitGweh</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='anggaran.css') }}">
+</head>
+<body>
+<main>
+  <div class="kepala">
+    <h1><a class="kembali" href="{{ url_for('index') }}" aria-label="Kembali ke beranda">‹</a> Anggaran</h1>
+    <nav class="periode" aria-label="Pilih bulan">
+      <a class="geser" href="{{ url_for('anggaran', bulan=bulan_lalu) }}" aria-label="Bulan sebelumnya">‹</a>
+      <strong>{{ nama_bulan }}</strong>
+      <a class="geser" href="{{ url_for('anggaran', bulan=bulan_depan) }}" aria-label="Bulan berikutnya">›</a>
+    </nav>
+  </div>
+
+  {% set daftar_pesan = get_flashed_messages() %}
+  {% if daftar_pesan %}
+  <dialog class="popup" id="popup" aria-labelledby="popup-judul">
+    <div class="popup-ikon" aria-hidden="true">!</div>
+    <h2 id="popup-judul">Perhatian</h2>
+    {% for m in daftar_pesan %}<p>{{ m }}</p>{% endfor %}
+    <button type="button" class="simpan" id="popup-tutup">Mengerti</button>
+  </dialog>
+  {% endif %}
+
+  {% if daftar %}
+  <div class="total">
+    <small>Sisa anggaran {{ nama_bulan }}</small>
+    <strong>{{ total_sisa | rupiah }}</strong>
+    <div class="progres" role="progressbar" aria-label="Pemakaian seluruh anggaran" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ [total_persen, 100] | min }}"><i style="width: {{ [total_persen, 100] | min }}%"></i></div>
+    <small>Terpakai {{ total_terpakai | rupiah }} dari {{ total_batas | rupiah }} ({{ total_persen }}%)</small>
+  </div>
+  {% endif %}
+
+  <section class="lipat">
+    <button type="button" class="lipat-tombol" aria-expanded="false" aria-controls="baru-isi">
+      Tambah anggaran <span class="panah" aria-hidden="true">▾</span>
+    </button>
+    <div class="lipat-isi" id="baru-isi"><div class="lipat-dalam">
+      <form class="form" method="post" action="{{ url_for('anggaran_simpan') }}">
+        <div><label for="kategori">Kategori</label>
+          <input id="kategori" name="kategori" list="kat" placeholder="Makan, Transport…" required>
+          <datalist id="kat">{% for k in daftar_kategori %}<option value="{{ k }}">{% endfor %}</datalist></div>
+        <div><label for="batas">Batas per bulan (Rp)</label><input id="batas" name="batas" inputmode="numeric" placeholder="1500000" required></div>
+        <p class="catatan penuh">Batas berlaku setiap bulan sampai diubah. Mengisi kategori yang sudah ada akan memperbarui batasnya.</p>
+        <button class="simpan penuh" type="submit">Simpan anggaran</button>
+      </form>
+    </div></div>
+  </section>
+
+  {% if daftar %}
+  <div class="kartu-grid">
+    {% for a in daftar %}
+    <article class="ang {{ a.status }}">
+      <div class="ang-atas">
+        <h2>{{ a.kategori }}</h2>
+        <span class="lencana">{{ {'aman': 'Aman', 'waspada': 'Waspada', 'lewat': 'Terlampaui'}[a.status] }}</span>
+      </div>
+      <p class="angka"><strong>{{ a.terpakai | rupiah }}</strong> <span>dari {{ a.batas | rupiah }}</span></p>
+      <div class="progres" role="progressbar" aria-label="Pemakaian {{ a.kategori }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ [a.persen, 100] | min }}"><i style="width: {{ [a.persen, 100] | min }}%"></i></div>
+      <p class="info">
+        <span>{{ a.persen }}%</span>
+        {% if a.sisa >= 0 %}<span>Sisa {{ a.sisa | rupiah }}</span>{% else %}<span class="lebih">Lebih {{ (-a.sisa) | rupiah }}</span>{% endif %}
+      </p>
+      {% if a.saran %}<p class="info"><span>Boleh dipakai sampai akhir bulan</span><span>± {{ a.saran | rupiah }}/hari</span></p>{% endif %}
+
+      <div class="aksi">
+        <button type="button" class="lipat-tombol chip" aria-expanded="false" aria-controls="ubah-{{ a.id }}">Ubah batas</button>
+        <form class="hapus" method="post" action="{{ url_for('anggaran_hapus', id=a.id) }}" data-konfirmasi="Hapus anggaran {{ a.kategori }}?">
+        <!-- <form class="hapus" method="post" action="{{ url_for('anggaran_hapus', id=a.id) }}" data-judul="Hapus anggaran?" data-konfirmasi="Anggaran {{ a.kategori }} akan dihapus."></form> -->
+          <button>Hapus</button>
+        </form>
+      </div>
+      <div class="lipat-isi" id="ubah-{{ a.id }}"><div class="lipat-dalam">
+        <form class="form" method="post" action="{{ url_for('anggaran_simpan') }}">
+          <input type="hidden" name="kategori" value="{{ a.kategori }}">
+          <div class="penuh"><label for="b{{ a.id }}">Batas per bulan (Rp)</label><input id="b{{ a.id }}" name="batas" inputmode="numeric" value="{{ a.batas }}" required></div>
+          <button class="simpan penuh" type="submit">Simpan perubahan</button>
+        </form>
+      </div></div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <section><p class="kosong">Belum ada anggaran. Tambahkan batas untuk kategori pertama Anda lewat tombol di atas.</p></section>
+  {% endif %}
+</main>
+
+<script>
+  document.querySelectorAll('.lipat-tombol').forEach(tombol => {
+    const isi = document.getElementById(tombol.getAttribute('aria-controls'));
+    tombol.addEventListener('click', () => {
+      const buka = tombol.getAttribute('aria-expanded') !== 'true';
+      tombol.setAttribute('aria-expanded', buka);
+      isi.classList.toggle('buka', buka);
+    });
+  });
+  document.querySelectorAll('[data-konfirmasi]').forEach(f =>
+    f.addEventListener('submit', e => { if (!confirm(f.dataset.konfirmasi)) e.preventDefault(); }));
+  const popup = document.getElementById('popup');
+  if (popup) {
+    popup.showModal();
+    document.getElementById('popup-tutup').addEventListener('click', () => popup.close());
+  }
+</script>
+
+<script>
+  (() => {
+    const dlg = document.getElementById('konfirmasi');
+    const judul = document.getElementById('konfirmasi-judul');
+    const teks = document.getElementById('konfirmasi-teks');
+    const batal = document.getElementById('konfirmasi-batal');
+    let form = null;
+
+    document.querySelectorAll('form[data-konfirmasi]').forEach(f => {
+      f.addEventListener('submit', e => {
+        e.preventDefault();
+        form = f;
+        judul.textContent = f.dataset.judul || 'Hapus data?';
+        teks.textContent = f.dataset.konfirmasi;
+        dlg.showModal();
+        batal.focus();
+      });
+    });
+    batal.addEventListener('click', () => dlg.close());
+    document.getElementById('konfirmasi-ya').addEventListener('click', () => {
+      dlg.close();
+      if (form) form.submit();
+    });
+    dlg.addEventListener('click', e => {
+      const r = dlg.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
+    });
+  })();
+</script>
+
+<dialog class="popup" id="konfirmasi" aria-labelledby="konfirmasi-judul">
+  <div class="popup-ikon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+  </div>
+  <h2 id="konfirmasi-judul">Hapus data?</h2>
+  <p id="konfirmasi-teks"></p>
+  <div class="popup-aksi">
+    <button type="button" class="batal" id="konfirmasi-batal">Batal</button>
+    <button type="button" class="bahaya" id="konfirmasi-ya">Hapus</button>
+  </div>
+</dialog>
+
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laporan {{ tahun }} · DuitGweh</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='laporan.css') }}">
+</head>
+<body>
+<main>
+  
+  <header>
+    <h1> <a class="kembali" href="{{ url_for('index') }}">‹</a> Laporan {{ tahun }}</h1>
+    <nav class="periode" aria-label="Pilih tahun">
+      <a class="geser" href="{{ url_for('laporan', tahun=tahun - 1) }}" aria-label="Tahun sebelumnya">‹</a>
+      <strong>{{ tahun }}</strong>
+      <a class="geser" href="{{ url_for('laporan', tahun=tahun + 1) }}" aria-label="Tahun berikutnya">›</a>
+    </nav>
+  </header>
+
+  <div class="saldo">
+    <small>Saldo akhir per {{ tahun }}</small>
+    <strong>{{ saldo_akhir | rupiah }}</strong>
+  </div>
+
+  <div class="kartu">
+    <div><small>Uang masuk</small><strong class="masuk">+ {{ total_masuk | rupiah }}</strong></div>
+    <div><small>Uang keluar</small><strong class="keluar">− {{ total_keluar | rupiah }}</strong></div>
+    <!-- <div><small>Rata-rata keluar per bulan</small><strong>{{ rata_keluar | rupiah }}</strong></div> -->
+  </div>
+
+  {% if total_masuk == 0 and total_keluar == 0 %}
+  <section><p class="kosong">Belum ada transaksi di tahun {{ tahun }}. Pilih tahun lain atau catat transaksi di beranda.</p></section>
+  {% else %}
+
+  <section>
+    <div class="kepala">
+      <h2>Arus kas per bulan</h2>
+      <button type="button" class="ganti" id="ganti-grafik" aria-pressed="false" aria-label="Ubah grafik ke bentuk kurva" title="Ubah bentuk grafik">
+        <svg class="i-kurva" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17c3-9 5-9 8-4s5 3 10-8"/></svg>
+        <svg class="i-batang" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="t-kurva"></span><span class="t-batang"></span>
+      </button>
+    </div>
+    <div class="legenda">
+      <span><i style="background: var(--masuk)"></i>Uang masuk</span>
+      <span><i style="background: var(--keluar)"></i>Uang keluar</span>
+      <span><i style="background: var(--biru)"></i>Tabungan</span>
+    </div>
+    <div class="grafik" id="grafik-bar" role="img" aria-label="Grafik batang uang masuk, uang keluar, dan tabungan per bulan tahun {{ tahun }}">
+      {% for b in per_bulan %}
+      <div class="kolom" title="{{ b.nama }}: masuk {{ b.masuk | rupiah }}, keluar {{ b.keluar_lain | rupiah }}, tabungan {{ b.tabungan | rupiah }}">
+        <div class="batang">
+          <i class="m" style="height: {{ (b.masuk / maks_bulan * 100) | round(1) }}%"></i>
+          <i class="k" style="height: {{ (b.keluar_lain / maks_bulan * 100) | round(1) }}%"></i>
+          <i class="t" style="height: {{ (b.tabungan / maks_bulan * 100) | round(1) }}%"></i>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="kurva" id="grafik-kurva" role="img" aria-label="Grafik kurva uang masuk, uang keluar, dan tabungan per bulan tahun {{ tahun }}" hidden></div>
+    <div class="label-bulan" aria-hidden="true">{% for b in per_bulan %}<span>{{ b.singkat }}</span>{% endfor %}</div>
+  </section>
+
+  <div class="saldo2">
+    <div><small>Rata-rata keluar per bulan</small><strong>{{ rata_keluar | rupiah }}</strong></div>
+  </div>
+
+  <section>
+    <h2>Ringkasan tiap bulan</h2>
+    <ul class="bulan-daftar">
+      {% for b in per_bulan %}
+      <li class="{{ 'sepi' if not b.masuk and not b.keluar }}">
+        <a href="{{ url_for('index', bulan=b.kode) }}">
+          <span class="nm">{{ b.nama }}</span>
+          <span class="uang"><span class="masuk">+{{ b.masuk | rupiah }}</span><span class="keluar">−{{ b.keluar | rupiah }}</span></span>
+          <strong class="{{ 'masuk' if b.selisih >= 0 else 'keluar' }}">{{ '+' if b.selisih > 0 }}{{ b.selisih | rupiah }}</strong>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <div class="grid">
+    <section>
+      <h2>Uang keluar per kategori</h2>
+      {% for k in keluar_kat %}
+        <div class="bar k"><span><b>{{ k.kategori }}</b><span>{{ k.total | rupiah }}</span></span>
+          <div style="width: {{ (k.total / maks_keluar * 100) | round(1) }}%"></div></div>
+      {% else %}<p class="kosong">Belum ada pengeluaran di tahun ini.</p>{% endfor %}
+    </section>
+    <section>
+      <h2>Uang masuk per kategori</h2>
+      {% for k in masuk_kat %}
+        <div class="bar m"><span><b>{{ k.kategori }}</b><span>{{ k.total | rupiah }}</span></span>
+          <div style="width: {{ (k.total / maks_masuk * 100) | round(1) }}%"></div></div>
+      {% else %}<p class="kosong">Belum ada pemasukan di tahun ini.</p>{% endfor %}
+    </section>
+  </div>
+
+  {% endif %}
+</main>
+
+<script>
+  (() => {
+    const tombol = document.getElementById('ganti-grafik');
+    if (!tombol) return;
+    const bar = document.getElementById('grafik-bar');
+    const kurva = document.getElementById('grafik-kurva');
+    const data = {{ per_bulan | tojson }};
+    const NS = 'http://www.w3.org/2000/svg';
+    const H = 200, ATAS = 12, GAP = 6;
+    // const maks = Math.max(1, ...data.map(d => Math.max(d.masuk, d.keluar)));
+    const maks = Math.max(1, ...data.map(d => Math.max(d.masuk, d.keluar_lain, d.tabungan)));
+    const rp = n => 'Rp ' + Math.abs(n).toLocaleString('id-ID');
+
+    // Kurva halus yang tidak melewati batas bawah (monotone cubic)
+    const halus = (p) => {
+      const n = p.length, dx = [], m = [], t = [];
+      for (let i = 0; i < n - 1; i++) { dx[i] = p[i + 1].x - p[i].x; m[i] = (p[i + 1].y - p[i].y) / dx[i]; }
+      t[0] = m[0]; t[n - 1] = m[n - 2];
+      for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+      for (let i = 0; i < n - 1; i++) {
+        if (m[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+        const a = t[i] / m[i], b = t[i + 1] / m[i], s = a * a + b * b;
+        if (s > 9) { const k = 3 / Math.sqrt(s); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+      }
+      let d = `M${p[0].x},${p[0].y}`;
+      for (let i = 0; i < n - 1; i++) {
+        const h = dx[i] / 3;
+        d += ` C${p[i].x + h},${p[i].y + t[i] * h} ${p[i + 1].x - h},${p[i + 1].y - t[i + 1] * h} ${p[i + 1].x},${p[i + 1].y}`;
+      }
+      return d;
+    };
+    const el = (nama, attr) => {
+      const e = document.createElementNS(NS, nama);
+      for (const k in attr) e.setAttribute(k, attr[k]);
+      return e;
+    };
+
+    const gambar = (animasi) => {
+      const W = kurva.clientWidth;
+      if (!W) return;
+      const cw = (W - GAP * 11) / 12;
+      const x = i => i * (cw + GAP) + cw / 2;
+      const y = v => H - 2 - (v / maks) * (H - ATAS - 2);
+      const svg = el('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}` });
+      if (animasi) svg.setAttribute('class', 'anim');
+      // const bidang = [['masuk', 'm', 'Uang masuk'], ['keluar', 'k', 'Uang keluar']];
+      const bidang = [['masuk', 'm', 'Uang masuk'], ['keluar_lain', 'k', 'Uang keluar'], ['tabungan', 't', 'Tabungan']];
+
+      bidang.forEach(([f, c]) => {
+        const pts = data.map((d, i) => ({ x: x(i), y: y(d[f]) }));
+        const garis = halus(pts);
+        svg.appendChild(el('path', { d: `${garis} L${pts[11].x},${H} L${pts[0].x},${H} Z`, class: 'area ' + c }));
+        svg.appendChild(el('path', { d: garis, class: 'garis ' + c, pathLength: 1 }));
+      });
+      bidang.forEach(([f, c, nama]) => {
+        data.forEach((d, i) => {
+          if (!d[f]) return;
+          const t = el('circle', { cx: x(i), cy: y(d[f]), r: 4, class: c });
+          const judul = el('title', {});
+          judul.textContent = `${d.nama} — ${nama} ${rp(d[f])}`;
+          t.appendChild(judul);
+          svg.appendChild(t);
+        });
+      });
+      kurva.replaceChildren(svg);
+    };
+
+    const atur = (pakaiKurva, animasi) => {
+      tombol.setAttribute('aria-pressed', pakaiKurva);
+      tombol.setAttribute('aria-label', pakaiKurva ? 'Ubah grafik ke bentuk batang' : 'Ubah grafik ke bentuk kurva');
+      bar.hidden = pakaiKurva;
+      kurva.hidden = !pakaiKurva;
+      if (pakaiKurva) gambar(animasi);
+      try { sessionStorage.setItem('grafikKurva', pakaiKurva ? '1' : '0'); } catch (e) {}
+    };
+
+    let awal = false;
+    try { awal = sessionStorage.getItem('grafikKurva') === '1'; } catch (e) {}
+    atur(awal, false);
+    tombol.addEventListener('click', () => atur(tombol.getAttribute('aria-pressed') !== 'true', true));
+    window.addEventListener('resize', () => { if (!kurva.hidden) gambar(false); });
+  })();
+</script>
+
+<script>
+  (() => {
+    const dlg = document.getElementById('konfirmasi');
+    const judul = document.getElementById('konfirmasi-judul');
+    const teks = document.getElementById('konfirmasi-teks');
+    const batal = document.getElementById('konfirmasi-batal');
+    let form = null;
+
+    document.querySelectorAll('form[data-konfirmasi]').forEach(f => {
+      f.addEventListener('submit', e => {
+        e.preventDefault();
+        form = f;
+        judul.textContent = f.dataset.judul || 'Hapus data?';
+        teks.textContent = f.dataset.konfirmasi;
+        dlg.showModal();
+        batal.focus();
+      });
+    });
+    batal.addEventListener('click', () => dlg.close());
+    document.getElementById('konfirmasi-ya').addEventListener('click', () => {
+      dlg.close();
+      if (form) form.submit();
+    });
+    dlg.addEventListener('click', e => {
+      const r = dlg.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
+    });
+  })();
+</script>
+
+<dialog class="popup" id="konfirmasi" aria-labelledby="konfirmasi-judul">
+  <div class="popup-ikon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+  </div>
+  <h2 id="konfirmasi-judul">Hapus data?</h2>
+  <p id="konfirmasi-teks"></p>
+  <div class="popup-aksi">
+    <button type="button" class="batal" id="konfirmasi-batal">Batal</button>
+    <button type="button" class="bahaya" id="konfirmasi-ya">Hapus</button>
+  </div>
+</dialog>
+
+</body>
+</html>
